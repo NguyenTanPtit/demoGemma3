@@ -5,41 +5,36 @@
  * @format
  */
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import { SafeAreaView, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import ChatScreen from './UI/ChatScreen';
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+const App = (): React.JSX.Element => {
+    const isDarkMode = useColorScheme() === 'dark';
 
-  return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
-  );
-}
+    const backgroundStyle = {
+        backgroundColor: isDarkMode ? '#000' : '#fff',
+        flex: 1,
+    };
 
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
+    return (
+        <SafeAreaView style={backgroundStyle}>
+            <StatusBar
+                barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+                backgroundColor={backgroundStyle.backgroundColor}
+            />
 
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
-  );
-}
+            <View style={styles.container}>
+                <ChatScreen />
+            </View>
+        </SafeAreaView>
+    );
+};
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
 });
 
 export default App;
