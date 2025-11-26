@@ -111,12 +111,15 @@ android {
         pickFirst 'lib/armeabi-v7a/libc++_shared.so'
         pickFirst 'lib/arm64-v8a/libc++_shared.so'
     }
+    aaptOptions {
+        noCompress "task", "bin" // Không nén các file đuôi .task hoặc .bin
+    }
 }
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
-    implementation 'com.google.mediapipe:tasks-genai:0.10.14'
+    implementation 'com.google.mediapipe:tasks-genai:0.10.29'
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {

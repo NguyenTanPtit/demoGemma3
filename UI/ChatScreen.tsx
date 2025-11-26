@@ -42,8 +42,6 @@ const PREVIEW_SIZE = 100;
 const PREVIEW_POSITION = { x: 10, y: -PREVIEW_SIZE - 10 };
 const TARGET_SIZE = 200;
 
-// Setup Event Emitter
-// Sử dụng 'as any' để bypass lỗi type checking tạm thời nếu module chưa link
 const eventEmitter = new NativeEventEmitter(NativeGenAI as any);
 
 type MessageType = 'text' | 'image' | 'audio';
@@ -72,6 +70,22 @@ const requestPermissions = async () => {
             console.warn(err);
         }
     }
+};
+
+const processImageInBackground = (imageAsset: Asset) => {
+    return new Promise((resolve, reject) => {
+        setTimeout(async () => {
+            try {
+                const compressedImage = await ImageResizer.createResizedImage(
+                    imageAsset?.uri as string, 700, 700, 'JPEG', 70, 0, undefined, false, { mode: 'contain' }
+                );
+                const base64Image = await RNFS.readFile(compressedImage.uri, 'base64');
+                resolve(base64Image);
+            } catch (err) {
+                reject(err);
+            }
+        }, 0);
+    });
 };
 
 // --- ChatScreen Component ---
@@ -141,6 +155,7 @@ const ChatScreen = () => {
             streamErrorSub.remove();
             if (isRecording) audioRecorderPlayer.stopRecorder();
             audioRecorderPlayer.removeRecordBackListener();
+            NativeGenAI.shutdown();
         };
     }, [isRecording]);
 
@@ -200,11 +215,8 @@ const ChatScreen = () => {
         imageOpacity.value = withTiming(0, { duration: 500});
 
         try {
-            const compressedImage = await ImageResizer.createResizedImage(
-                imageAsset.uri, 800, 800, 'JPEG', 80, 0, undefined, false, { mode: 'contain' }
-            );
-            const base64Image = await RNFS.readFile(compressedImage.uri, 'base64');
 
+            const base64Image = await processImageInBackground(imageAsset);
             setIsGenerating(true);
             setMessages((prev) => [...prev, { id: aiMsgId, type: 'text', content: '', sender: 'ai', isStreaming: true }]);
             NativeGenAI.startStreamingResponse(`[IMAGE_DATA:${base64Image}]`);
