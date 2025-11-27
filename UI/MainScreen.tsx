@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 
@@ -10,29 +10,38 @@ const MainScreen = () => {
     <View style={styles.container}>
       <Text style={styles.title}>Main Menu</Text>
 
-      <TouchableOpacity
-        style={styles.button}
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          pressed && styles.buttonPressed
+        ]}
         onPress={() => navigation.navigate('CameraScreen')}
       >
         <MaterialCommunityIcons name="camera" size={30} color="#fff" />
         <Text style={styles.buttonText}>Camera</Text>
-      </TouchableOpacity>
+      </Pressable>
 
-      <TouchableOpacity
-        style={styles.button}
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          pressed && styles.buttonPressed
+        ]}
         onPress={() => navigation.navigate('ChatScreen')}
       >
         <MaterialCommunityIcons name="chat" size={30} color="#fff" />
         <Text style={styles.buttonText}>Chat</Text>
-      </TouchableOpacity>
+      </Pressable>
 
-      <TouchableOpacity
-        style={styles.button}
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          pressed && styles.buttonPressed
+        ]}
         onPress={() => navigation.navigate('WOScreen')}
       >
         <MaterialCommunityIcons name="clipboard-list" size={30} color="#fff" />
         <Text style={styles.buttonText}>Work Orders</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 };
@@ -61,6 +70,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 3,
+  },
+  buttonPressed: {
+    opacity: 0.7,
   },
   buttonText: {
     color: '#fff',
