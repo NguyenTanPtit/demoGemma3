@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import {
     View,
@@ -9,7 +8,6 @@ import {
     Alert
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-
 import Geolocation from '@react-native-community/geolocation';
 
 interface LocationCoords {
@@ -18,7 +16,6 @@ interface LocationCoords {
 }
 
 interface CheckInCardProps {
-    // Callback trả về trạng thái và vị trí (nếu có)
     onStatusChange?: (isEnabled: boolean, location?: LocationCoords) => void;
     initialStatus?: boolean;
 }
@@ -26,6 +23,7 @@ interface CheckInCardProps {
 const COLORS = {
     cardBg: '#FFFFFF',
     textDark: '#1A1A1A',
+    textGray: '#757575',
     primaryRed: '#D32F2F',
     borderGray: '#E0E0E0',
     switchTrackActive: '#EF9A9A',
@@ -37,11 +35,11 @@ const COLORS = {
 const CheckInCard = ({ onStatusChange, initialStatus = false }: CheckInCardProps) => {
     const [isEnabled, setIsEnabled] = useState(initialStatus);
     const [isLoading, setIsLoading] = useState(false);
+    // State để lưu thông tin hiển thị
+    const [checkInInfo, setCheckInInfo] = useState<string | null>(null);
 
     const performGpsTask = async (): Promise<LocationCoords> => {
         return new Promise((resolve, reject) => {
-            console.log("[Native] Starting GPS Foreground Service...");
-
             Geolocation.getCurrentPosition(
                 (position) => {
                     resolve({
@@ -57,39 +55,50 @@ const CheckInCard = ({ onStatusChange, initialStatus = false }: CheckInCardProps
 
     const toggleSwitch = useCallback(async () => {
         if (!isEnabled) {
-            setIsLoading(true); // Hiện loading xoay xoay nếu cần
+            setIsLoading(true);
             try {
-
                 const location = await performGpsTask();
+
+                // Lấy thời gian hiện tại
+                const now = new Date();
+                const timeString = `${now.getHours()}:${now.getMinutes()} ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+
+                // Format thông tin hiển thị
+                const infoText = `Lat: ${location.latitude.toFixed(5)}\nLong: ${location.longitude.toFixed(5)}\nTime: ${timeString}`;
+
                 setIsEnabled(true);
-                console.log("Check-in thành công tại:", location);
+                setCheckInInfo(infoText);
 
                 if (onStatusChange) onStatusChange(true, location);
 
             } catch (error) {
                 Alert.alert("Lỗi", (error as Error).message);
-                // Không bật switch nếu lỗi
                 setIsEnabled(false);
+                setCheckInInfo(null);
             } finally {
                 setIsLoading(false);
             }
         }
         else {
             setIsEnabled(false);
-            console.log("Đã tắt chế độ Check-in");
+            setCheckInInfo(null);
             if (onStatusChange) onStatusChange(false);
         }
     }, [isEnabled, onStatusChange]);
 
     return (
         <View style={styles.cardContainer}>
-            {/* Label Text */}
-            <Text style={styles.label}>
-                {isLoading ? "Đang lấy vị trí..." : "Bắt đầu thực hiện công việc"}
-            </Text>
+            <View style={styles.textContainer}>
+                <Text style={styles.label}>
+                    {isLoading ? "Đang lấy vị trí..." : "Bắt đầu thực hiện công việc"}
+                </Text>
+                {/* Hiển thị thông tin Lat/Long/Time khi check-in thành công */}
+                {isEnabled && checkInInfo && (
+                    <Text style={styles.infoText}>{checkInInfo}</Text>
+                )}
+            </View>
 
             <View style={styles.controlsContainer}>
-                {/* Switch */}
                 {isLoading ? (
                     <ActivityIndicator size="small" color={COLORS.primaryRed} style={{marginRight: 10}}/>
                 ) : (
@@ -102,7 +111,6 @@ const CheckInCard = ({ onStatusChange, initialStatus = false }: CheckInCardProps
                     />
                 )}
 
-                {/* Location Icon with Border */}
                 <View style={[
                     styles.iconContainer,
                     isEnabled ? styles.iconContainerActive : styles.iconContainerInactive
@@ -121,47 +129,53 @@ const CheckInCard = ({ onStatusChange, initialStatus = false }: CheckInCardProps
 const styles = StyleSheet.create({
     cardContainer: {
         backgroundColor: COLORS.cardBg,
-        flexDirection: 'row', // Xếp ngang
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: 16,
         borderRadius: 12,
         marginHorizontal: 16,
         marginVertical: 8,
-        // Shadow cho Android (Elevation)
         elevation: 4,
-        // Shadow cho iOS
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
     },
+    textContainer: {
+        flex: 1,
+        paddingRight: 10,
+    },
     label: {
         fontSize: 16,
         fontWeight: '500',
         color: COLORS.textDark,
-        flex: 1, // Chiếm hết không gian bên trái
+    },
+    infoText: {
+        marginTop: 4,
+        fontSize: 12,
+        color: COLORS.textGray,
+        lineHeight: 16,
     },
     controlsContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12, // Khoảng cách giữa Switch và Icon (React Native 0.71+)
+        gap: 12,
     },
     switch: {
-        // Transform scale giúp switch nhỏ gọn hơn nếu muốn
         transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }]
     },
     iconContainer: {
         width: 40,
         height: 40,
-        borderRadius: 20, // Bo tròn thành hình tròn/oval
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 0,
     },
     iconContainerActive: {
         borderColor: COLORS.primaryRed,
-        backgroundColor: '#FFEBEE', // Nền đỏ rất nhạt
+        backgroundColor: '#FFEBEE',
     },
     iconContainerInactive: {
         borderColor: '#CFD8DC',

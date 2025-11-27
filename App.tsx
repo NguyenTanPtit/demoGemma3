@@ -7,6 +7,7 @@
 
 import { SafeAreaView, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import ChatScreen from './UI/ChatScreen';
+import CameraWatermarkScreen from "./UI/CameraWatermarkScreen.tsx";
 
 const App = (): React.JSX.Element => {
     const isDarkMode = useColorScheme() === 'dark';
@@ -24,7 +25,7 @@ const App = (): React.JSX.Element => {
             />
 
             <View style={styles.container}>
-                <ChatScreen />
+                <CameraWatermarkScreen />
             </View>
         </SafeAreaView>
     );
