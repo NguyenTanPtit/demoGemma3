@@ -1,0 +1,73 @@
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useNavigation } from '@react-navigation/native';
+
+const MainScreen = () => {
+  const navigation = useNavigation<any>();
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Main Menu</Text>
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate('CameraScreen')}
+      >
+        <MaterialCommunityIcons name="camera" size={30} color="#fff" />
+        <Text style={styles.buttonText}>Camera</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate('ChatScreen')}
+      >
+        <MaterialCommunityIcons name="chat" size={30} color="#fff" />
+        <Text style={styles.buttonText}>Chat</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate('WOScreen')}
+      >
+        <MaterialCommunityIcons name="clipboard-list" size={30} color="#fff" />
+        <Text style={styles.buttonText}>Work Orders</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 40,
+    color: '#333',
+  },
+  button: {
+    flexDirection: 'row',
+    backgroundColor: '#6200ee',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    marginVertical: 10,
+    width: '80%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    marginLeft: 10,
+    fontWeight: '600',
+  },
+});
+
+export default MainScreen;
