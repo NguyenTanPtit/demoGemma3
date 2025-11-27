@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 
-const MainScreen = () => {
+const MainScreen  = () => {
   const navigation = useNavigation<any>();
 
   return (
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   },
   button: {
     flexDirection: 'row',
-    backgroundColor: '#6200ee',
+    backgroundColor: '#EF9A9A',
     paddingVertical: 15,
     paddingHorizontal: 30,
     borderRadius: 10,
