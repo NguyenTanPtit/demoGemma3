@@ -5,37 +5,64 @@
  * @format
  */
 
-import { SafeAreaView, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import React from 'react';
+import { StatusBar, useColorScheme } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import MainScreen from './UI/MainScreen';
 import ChatScreen from './UI/ChatScreen';
-import CameraWatermarkScreen from "./UI/CameraWatermarkScreen.tsx";
+import CameraWatermarkScreen from './UI/CameraWatermarkScreen.tsx';
+import WOScreen from './UI/WOScreen';
+import PreviewScreen from './UI/PreviewScreen';
+
+const Stack = createNativeStackNavigator();
 
 const App = (): React.JSX.Element => {
     const isDarkMode = useColorScheme() === 'dark';
 
     const backgroundStyle = {
         backgroundColor: isDarkMode ? '#000' : '#fff',
-        flex: 1,
     };
 
     return (
-        <SafeAreaView style={backgroundStyle}>
+        <SafeAreaProvider>
             <StatusBar
                 barStyle={isDarkMode ? 'light-content' : 'dark-content'}
                 backgroundColor={backgroundStyle.backgroundColor}
             />
-
-            <View style={styles.container}>
-                <CameraWatermarkScreen />
-            </View>
-        </SafeAreaView>
+            <NavigationContainer>
+                <Stack.Navigator initialRouteName="Main">
+                    <Stack.Screen
+                        name="Main"
+                        component={MainScreen}
+                        options={{ title: 'Home', headerShown: false }}
+                    />
+                    <Stack.Screen
+                        name="CameraScreen"
+                        component={CameraWatermarkScreen}
+                        options={{ title: 'Camera', headerShown: false }}
+                    />
+                    <Stack.Screen
+                        name="ChatScreen"
+                        component={ChatScreen}
+                        options={{ title: 'AI Chat', headerShown: false }}
+                    />
+                    <Stack.Screen
+                        name="WOScreen"
+                        component={WOScreen}
+                        options={{ title: 'Work Order', headerShown: false }}
+                    />
+                     <Stack.Screen
+                        name="PreviewScreen"
+                        component={PreviewScreen}
+                        options={{ title: 'Preview', headerShown: false }}
+                    />
+                </Stack.Navigator>
+            </NavigationContainer>
+        </SafeAreaProvider>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
-});
 
 export default App;
