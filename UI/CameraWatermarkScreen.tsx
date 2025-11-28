@@ -6,7 +6,9 @@ import {
     Platform,
     PermissionsAndroid,
     Alert,
-    ActivityIndicator
+    ActivityIndicator,
+    AppState,
+    AppStateStatus
 } from 'react-native';
 import {
     Camera,
@@ -14,11 +16,45 @@ import {
     useCameraPermission,
 } from 'react-native-vision-camera';
 import Geolocation from 'react-native-geolocation-service';
+import { useIsFocused } from '@react-navigation/native';
 
 const CameraScreen = () => {
     // 1. Camera Setup
     const device = useCameraDevice('back');
     const { hasPermission, requestPermission } = useCameraPermission();
+
+    // Lifecycle management for Camera to avoid crash on navigation
+    const isFocused = useIsFocused();
+    const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
+    const [isCameraActive, setIsCameraActive] = useState(false);
+
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', nextAppState => {
+            setAppState(nextAppState);
+        });
+        return () => {
+            subscription.remove();
+        };
+    }, []);
+
+    useEffect(() => {
+        // Only activate camera when focused and app is active
+        // Adding a small delay to ensure transition is complete
+        let timeout: NodeJS.Timeout;
+
+        if (isFocused && appState === 'active') {
+            timeout = setTimeout(() => {
+                setIsCameraActive(true);
+            }, 500); // 500ms delay to allow screen transition to finish
+        } else {
+            setIsCameraActive(false);
+        }
+
+        return () => {
+            if (timeout) clearTimeout(timeout);
+        };
+    }, [isFocused, appState]);
+
 
     // 2. State for Overlay
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -82,7 +118,7 @@ const CameraScreen = () => {
             <Camera
                 style={StyleSheet.absoluteFill}
                 device={device}
-                isActive={true}
+                isActive={isCameraActive}
                 photo={true}
             />
 
