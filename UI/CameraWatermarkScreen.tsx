@@ -199,13 +199,14 @@ const CameraScreen = () => {
             <ViewShot
                 ref={viewShotRef}
                 style={styles.viewShotContainer}
-                options={{ format: "jpg", quality: 1.0, result: "tmpfile" }}
+                options={{ format: "png", quality: 1.0, result: "tmpfile" }}
             >
                 {tempPhotoPath ? (
                     <Image
                         source={{ uri: tempPhotoPath }}
                         style={StyleSheet.absoluteFill}
                         resizeMode="cover"
+                        fadeDuration={0}
                         onLoad={processCapturedImage} // Trigger capture of the view once image is loaded
                     />
                 ) : (
