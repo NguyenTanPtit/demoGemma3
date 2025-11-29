@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     StyleSheet,
     View,
@@ -8,7 +8,9 @@ import {
     Alert,
     ActivityIndicator,
     AppState,
-    AppStateStatus
+    AppStateStatus,
+    Pressable,
+    Image
 } from 'react-native';
 import {
     Camera,
@@ -16,17 +18,40 @@ import {
     useCameraPermission,
 } from 'react-native-vision-camera';
 import Geolocation from 'react-native-geolocation-service';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation, useFocusEffect } from '@react-navigation/native';
+import ViewShot from 'react-native-view-shot';
+import ImageResizer from 'react-native-image-resizer';
 
 const CameraScreen = () => {
+    const navigation = useNavigation<any>();
+
     // 1. Camera Setup
     const device = useCameraDevice('back');
     const { hasPermission, requestPermission } = useCameraPermission();
+    const cameraRef = useRef<Camera>(null);
+    const viewShotRef = useRef<ViewShot>(null);
+    const [isCapturing, setIsCapturing] = useState(false);
 
     // Lifecycle management for Camera to avoid crash on navigation
     const isFocused = useIsFocused();
     const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
     const [isCameraActive, setIsCameraActive] = useState(false);
+
+    // Temp photo path for watermark capture workaround
+    const [tempPhotoPath, setTempPhotoPath] = useState<string | null>(null);
+
+    // Reset capturing state when screen gains focus
+    useFocusEffect(
+        useCallback(() => {
+            setIsCapturing(false);
+            setTempPhotoPath(null);
+
+            // Re-activate camera logic handled by isFocused effect
+            return () => {
+                 // cleanup if needed
+            };
+        }, [])
+    );
 
     useEffect(() => {
         const subscription = AppState.addEventListener('change', nextAppState => {
@@ -109,37 +134,133 @@ const CameraScreen = () => {
         return () => Geolocation.clearWatch(watchId);
     }, []);
 
+    const processCapturedImage = async () => {
+        if (!viewShotRef.current) return;
+
+        try {
+             // 2. Capture the View (Image + Overlay)
+            const uri = await viewShotRef.current.capture();
+            if (!uri) throw new Error("Failed to capture view");
+
+            // 3. Compress the image (70% quality)
+            const compressedResult = await ImageResizer.createResizedImage(
+                uri,
+                1080,
+                1920,
+                'JPEG',
+                70,
+                0,
+                undefined,
+                false,
+                { mode: 'contain' }
+            );
+
+            // 4. Navigate to Preview
+            navigation.navigate('PreviewScreen', { imageUri: compressedResult.uri });
+
+            // Clean up happens in useFocusEffect when returning
+
+        } catch (error) {
+            console.error("Capture processing failed:", error);
+            Alert.alert("Error", "Failed to process image.");
+            setIsCapturing(false);
+            setTempPhotoPath(null);
+        }
+    };
+
+    const handleCapture = async () => {
+        if (isCapturing || !cameraRef.current) return;
+
+        try {
+            setIsCapturing(true);
+
+            // 1. Take the high-res photo first
+            const photo = await cameraRef.current.takePhoto({
+                // flash: 'off' // Removed to allow auto exposure/flash
+            });
+
+            // Set the temp photo path to display it
+            const photoUri = Platform.OS === 'android' ? `file://${photo.path}` : photo.path;
+            setTempPhotoPath(photoUri);
+
+        } catch (error) {
+            console.error("Capture failed:", error);
+            Alert.alert("Error", "Failed to capture image.");
+            setIsCapturing(false);
+        }
+    };
+
     // Handling "No Device" state
     if (device == null) return <ActivityIndicator size="large" color="red" />;
 
     return (
         <View style={styles.container}>
-            {/* The Camera View */}
-            <Camera
-                style={StyleSheet.absoluteFill}
-                device={device}
-                isActive={isCameraActive}
-                photo={true}
-            />
+            {/* ViewShot wraps the content. If tempPhotoPath exists, it shows the Image, otherwise the Camera */}
+            <ViewShot
+                ref={viewShotRef}
+                style={styles.viewShotContainer}
+                options={{ format: "png", quality: 1.0, result: "tmpfile" }}
+            >
+                {tempPhotoPath ? (
+                    <Image
+                        source={{ uri: tempPhotoPath }}
+                        style={StyleSheet.absoluteFill}
+                        resizeMode="cover"
+                        fadeDuration={0}
+                        onLoad={processCapturedImage} // Trigger capture of the view once image is loaded
+                    />
+                ) : (
+                    <Camera
+                        ref={cameraRef}
+                        style={StyleSheet.absoluteFill}
+                        device={device}
+                        isActive={isCameraActive}
+                        photo={true}
+                    />
+                )}
 
-            {/* The Overlay: Bottom Left Corner */}
-            <View style={styles.overlay}>
-                <Text style={styles.text}>
-                    Time: {currentDate.toLocaleTimeString()}
-                </Text>
-                <Text style={styles.text}>
-                    Lat: {location.lat?.toFixed(5) || 'Loading...'}
-                </Text>
-                <Text style={styles.text}>
-                    Long: {location.long?.toFixed(5) || 'Loading...'}
-                </Text>
-            </View>
+                {/* The Overlay: Bottom Left Corner - Always visible on top */}
+                <View style={styles.overlay}>
+                    <Text style={styles.text}>
+                        Time: {currentDate.toLocaleTimeString()}
+                    </Text>
+                    <Text style={styles.text}>
+                        Lat: {location.lat?.toFixed(5) || 'Loading...'}
+                    </Text>
+                    <Text style={styles.text}>
+                        Long: {location.long?.toFixed(5) || 'Loading...'}
+                    </Text>
+                </View>
+            </ViewShot>
+
+            {/* Capture Button - Hide when processing to avoid double clicks */}
+            {!isCapturing && (
+                <View style={styles.bottomBar}>
+                    <Pressable
+                        style={({ pressed }) => [styles.captureButton, pressed && styles.captureButtonPressed]}
+                        onPress={handleCapture}
+                    >
+                        <View style={styles.captureInner} />
+                    </Pressable>
+                </View>
+            )}
+
+             {isCapturing && (
+                <View style={styles.loadingOverlay}>
+                    <ActivityIndicator size="large" color="#fff" />
+                    <Text style={styles.loadingText}>Processing...</Text>
+                </View>
+            )}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
+        flex: 1,
+        backgroundColor: 'black',
+    },
+    viewShotContainer: {
         flex: 1,
         backgroundColor: 'black',
     },
@@ -157,6 +278,46 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontFamily: Platform.OS === 'android' ? 'monospace' : 'Courier', // Monospace looks better for data
     },
+    bottomBar: {
+        position: 'absolute',
+        bottom: 40,
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10,
+    },
+    captureButton: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 4,
+        borderColor: 'white',
+    },
+    captureButtonPressed: {
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        transform: [{ scale: 0.95 }],
+    },
+    captureInner: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: 'white',
+    },
+    loadingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 20,
+    },
+    loadingText: {
+        color: 'white',
+        marginTop: 10,
+        fontSize: 16,
+    }
 });
 
 export default CameraScreen;
