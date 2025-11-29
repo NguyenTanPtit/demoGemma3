@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     StyleSheet,
     View,
@@ -18,7 +18,7 @@ import {
     useCameraPermission,
 } from 'react-native-vision-camera';
 import Geolocation from 'react-native-geolocation-service';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation, useFocusEffect } from '@react-navigation/native';
 import ViewShot from 'react-native-view-shot';
 import ImageResizer from 'react-native-image-resizer';
 
@@ -39,6 +39,19 @@ const CameraScreen = () => {
 
     // Temp photo path for watermark capture workaround
     const [tempPhotoPath, setTempPhotoPath] = useState<string | null>(null);
+
+    // Reset capturing state when screen gains focus
+    useFocusEffect(
+        useCallback(() => {
+            setIsCapturing(false);
+            setTempPhotoPath(null);
+
+            // Re-activate camera logic handled by isFocused effect
+            return () => {
+                 // cleanup if needed
+            };
+        }, [])
+    );
 
     useEffect(() => {
         const subscription = AppState.addEventListener('change', nextAppState => {
@@ -125,7 +138,7 @@ const CameraScreen = () => {
         if (!viewShotRef.current) return;
 
         try {
-             // 2. Capture the View (Image + Overlay) - Now it is capturing a static Image view, so it works!
+             // 2. Capture the View (Image + Overlay)
             const uri = await viewShotRef.current.capture();
             if (!uri) throw new Error("Failed to capture view");
 
@@ -145,8 +158,8 @@ const CameraScreen = () => {
             // 4. Navigate to Preview
             navigation.navigate('PreviewScreen', { imageUri: compressedResult.uri });
 
-            // Clean up temp photo path after navigation
-            setTempPhotoPath(null);
+            // Clean up happens in useFocusEffect when returning
+
         } catch (error) {
             console.error("Capture processing failed:", error);
             Alert.alert("Error", "Failed to process image.");
@@ -163,16 +176,12 @@ const CameraScreen = () => {
 
             // 1. Take the high-res photo first
             const photo = await cameraRef.current.takePhoto({
-                flash: 'off'
+                // flash: 'off' // Removed to allow auto exposure/flash
             });
 
             // Set the temp photo path to display it
-            // On Android, we need to ensure the path is usable by Image component (file://)
             const photoUri = Platform.OS === 'android' ? `file://${photo.path}` : photo.path;
             setTempPhotoPath(photoUri);
-
-            // The rest of the logic happens in the Image onLoad (processCapturedImage) or after a small timeout if onLoad is flaky
-            // But relying on onLoad is safer.
 
         } catch (error) {
             console.error("Capture failed:", error);
@@ -190,7 +199,7 @@ const CameraScreen = () => {
             <ViewShot
                 ref={viewShotRef}
                 style={styles.viewShotContainer}
-                options={{ format: "jpg", quality: 0.9, result: "tmpfile" }}
+                options={{ format: "jpg", quality: 1.0, result: "tmpfile" }}
             >
                 {tempPhotoPath ? (
                     <Image
