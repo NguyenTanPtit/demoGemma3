@@ -9,7 +9,8 @@ import {
     ActivityIndicator,
     AppState,
     AppStateStatus,
-    Pressable
+    Pressable,
+    Image
 } from 'react-native';
 import {
     Camera,
@@ -27,6 +28,7 @@ const CameraScreen = () => {
     // 1. Camera Setup
     const device = useCameraDevice('back');
     const { hasPermission, requestPermission } = useCameraPermission();
+    const cameraRef = useRef<Camera>(null);
     const viewShotRef = useRef<ViewShot>(null);
     const [isCapturing, setIsCapturing] = useState(false);
 
@@ -34,6 +36,9 @@ const CameraScreen = () => {
     const isFocused = useIsFocused();
     const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
     const [isCameraActive, setIsCameraActive] = useState(false);
+
+    // Temp photo path for watermark capture workaround
+    const [tempPhotoPath, setTempPhotoPath] = useState<string | null>(null);
 
     useEffect(() => {
         const subscription = AppState.addEventListener('change', nextAppState => {
@@ -116,40 +121,62 @@ const CameraScreen = () => {
         return () => Geolocation.clearWatch(watchId);
     }, []);
 
+    const processCapturedImage = async () => {
+        if (!viewShotRef.current) return;
+
+        try {
+             // 2. Capture the View (Image + Overlay) - Now it is capturing a static Image view, so it works!
+            const uri = await viewShotRef.current.capture();
+            if (!uri) throw new Error("Failed to capture view");
+
+            // 3. Compress the image (70% quality)
+            const compressedResult = await ImageResizer.createResizedImage(
+                uri,
+                1080,
+                1920,
+                'JPEG',
+                70,
+                0,
+                undefined,
+                false,
+                { mode: 'contain' }
+            );
+
+            // 4. Navigate to Preview
+            navigation.navigate('PreviewScreen', { imageUri: compressedResult.uri });
+
+            // Clean up temp photo path after navigation
+            setTempPhotoPath(null);
+        } catch (error) {
+            console.error("Capture processing failed:", error);
+            Alert.alert("Error", "Failed to process image.");
+            setIsCapturing(false);
+            setTempPhotoPath(null);
+        }
+    };
+
     const handleCapture = async () => {
-        if (isCapturing || !viewShotRef.current) return;
+        if (isCapturing || !cameraRef.current) return;
 
         try {
             setIsCapturing(true);
 
-            // 1. Capture the View (Image + Overlay)
-            // Note: capturing VisionCamera with ViewShot on Android often results in black screen due to SurfaceView.
-            // However, using 'snapshotContentContainer: true' or specific options usually helps.
-            // If this persists as black screen, we would need to switch to camera.takePhoto().
-            const uri = await viewShotRef.current.capture();
-            if (!uri) throw new Error("Failed to capture view");
+            // 1. Take the high-res photo first
+            const photo = await cameraRef.current.takePhoto({
+                flash: 'off'
+            });
 
-            // 2. Compress the image (70% quality)
-            // Note: ImageResizer runs in a separate thread
-            const compressedResult = await ImageResizer.createResizedImage(
-                uri,
-                1080, // Target width (adjust as needed)
-                1920, // Target height
-                'JPEG',
-                70, // Quality (0-100)
-                0, // Rotation
-                undefined, // Output path
-                false, // Keep meta
-                { mode: 'contain' } // Resize mode
-            );
+            // Set the temp photo path to display it
+            // On Android, we need to ensure the path is usable by Image component (file://)
+            const photoUri = Platform.OS === 'android' ? `file://${photo.path}` : photo.path;
+            setTempPhotoPath(photoUri);
 
-            // 3. Navigate to Preview
-            navigation.navigate('PreviewScreen', { imageUri: compressedResult.uri });
+            // The rest of the logic happens in the Image onLoad (processCapturedImage) or after a small timeout if onLoad is flaky
+            // But relying on onLoad is safer.
 
         } catch (error) {
             console.error("Capture failed:", error);
             Alert.alert("Error", "Failed to capture image.");
-        } finally {
             setIsCapturing(false);
         }
     };
@@ -159,21 +186,30 @@ const CameraScreen = () => {
 
     return (
         <View style={styles.container}>
-            {/* ViewShot wraps the camera AND the overlay to capture them together */}
+            {/* ViewShot wraps the content. If tempPhotoPath exists, it shows the Image, otherwise the Camera */}
             <ViewShot
                 ref={viewShotRef}
                 style={styles.viewShotContainer}
                 options={{ format: "jpg", quality: 0.9, result: "tmpfile" }}
             >
-                {/* The Camera View */}
-                <Camera
-                    style={StyleSheet.absoluteFill}
-                    device={device}
-                    isActive={isCameraActive}
-                    photo={true}
-                />
+                {tempPhotoPath ? (
+                    <Image
+                        source={{ uri: tempPhotoPath }}
+                        style={StyleSheet.absoluteFill}
+                        resizeMode="cover"
+                        onLoad={processCapturedImage} // Trigger capture of the view once image is loaded
+                    />
+                ) : (
+                    <Camera
+                        ref={cameraRef}
+                        style={StyleSheet.absoluteFill}
+                        device={device}
+                        isActive={isCameraActive}
+                        photo={true}
+                    />
+                )}
 
-                {/* The Overlay: Bottom Left Corner */}
+                {/* The Overlay: Bottom Left Corner - Always visible on top */}
                 <View style={styles.overlay}>
                     <Text style={styles.text}>
                         Time: {currentDate.toLocaleTimeString()}
@@ -187,16 +223,17 @@ const CameraScreen = () => {
                 </View>
             </ViewShot>
 
-            {/* Capture Button */}
-            <View style={styles.bottomBar}>
-                <Pressable
-                    style={({ pressed }) => [styles.captureButton, pressed && styles.captureButtonPressed]}
-                    onPress={handleCapture}
-                    disabled={isCapturing}
-                >
-                    <View style={styles.captureInner} />
-                </Pressable>
-            </View>
+            {/* Capture Button - Hide when processing to avoid double clicks */}
+            {!isCapturing && (
+                <View style={styles.bottomBar}>
+                    <Pressable
+                        style={({ pressed }) => [styles.captureButton, pressed && styles.captureButtonPressed]}
+                        onPress={handleCapture}
+                    >
+                        <View style={styles.captureInner} />
+                    </Pressable>
+                </View>
+            )}
 
              {isCapturing && (
                 <View style={styles.loadingOverlay}>
@@ -215,7 +252,6 @@ const styles = StyleSheet.create({
     },
     viewShotContainer: {
         flex: 1,
-        // Collapsable false is crucial for ViewShot to find the view on Android sometimes
         backgroundColor: 'black',
     },
     overlay: {
