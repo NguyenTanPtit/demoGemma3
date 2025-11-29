@@ -65,12 +65,13 @@ const CameraScreen = () => {
             setTempPhotoPath(null);
             setIsRecording(false);
             setRecordingDuration(0);
+            setZoom(device?.neutralZoom || 1);
 
             // Re-activate camera logic handled by isFocused effect
             return () => {
                  // cleanup if needed
             };
-        }, [])
+        }, [device?.neutralZoom])
     );
 
     // Timer Logic
