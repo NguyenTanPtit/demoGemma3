@@ -2,6 +2,7 @@ import {View} from "react-native";
 import Header from "./Header.tsx";
 import Progress, {StepData} from "./Progress.tsx";
 import CheckInCard from "./CheckInComponent.tsx";
+import TabLayout from "./TabLayout.tsx";
 
 
 const stepDataList: StepData[] = [
@@ -12,8 +13,8 @@ const stepDataList: StepData[] = [
 ];
 const WOScreen = () => {
     return <View>
-        <Header
-        />
+        <Header/>
+        <TabLayout/>
         <Progress steps={stepDataList} currentStepIndex={2} />
         <CheckInCard/>
     </View>;
