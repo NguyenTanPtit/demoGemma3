@@ -26,6 +26,12 @@ import Slider from '@react-native-community/slider';
 
 type CaptureMode = 'photo' | 'video';
 
+const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
 const CameraScreen = () => {
     const navigation = useNavigation<any>();
 
@@ -50,6 +56,7 @@ const CameraScreen = () => {
     const [zoom, setZoom] = useState(device?.neutralZoom || 1);
     const [mode, setMode] = useState<CaptureMode>('photo');
     const [isRecording, setIsRecording] = useState(false);
+    const [recordingDuration, setRecordingDuration] = useState(0);
 
     // Reset capturing state when screen gains focus
     useFocusEffect(
@@ -57,6 +64,7 @@ const CameraScreen = () => {
             setIsCapturing(false);
             setTempPhotoPath(null);
             setIsRecording(false);
+            setRecordingDuration(0);
 
             // Re-activate camera logic handled by isFocused effect
             return () => {
@@ -64,6 +72,20 @@ const CameraScreen = () => {
             };
         }, [])
     );
+
+    // Timer Logic
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (isRecording) {
+            setRecordingDuration(0);
+            interval = setInterval(() => {
+                setRecordingDuration(prev => prev + 1);
+            }, 1000);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isRecording]);
 
     useEffect(() => {
         const subscription = AppState.addEventListener('change', nextAppState => {
@@ -289,6 +311,14 @@ const CameraScreen = () => {
                 </View>
             </ViewShot>
 
+            {/* Recording Timer */}
+            {isRecording && (
+                <View style={styles.timerContainer}>
+                     <View style={styles.redDot} />
+                     <Text style={styles.timerText}>{formatDuration(recordingDuration)}</Text>
+                </View>
+            )}
+
             {/* Mode Switcher */}
              {!isCapturing && !isRecording && !tempPhotoPath && (
                 <View style={styles.modeSwitcher}>
@@ -458,6 +488,29 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: 'bold',
         marginBottom: 5,
+    },
+    timerContainer: {
+        position: 'absolute',
+        top: 50,
+        alignSelf: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    redDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: 'red',
+        marginRight: 8,
+    },
+    timerText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 18,
     }
 });
 
