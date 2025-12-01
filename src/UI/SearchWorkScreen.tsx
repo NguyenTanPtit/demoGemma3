@@ -157,7 +157,13 @@ const SearchWorkScreen = () => {
                 console.log("Token missing, fetching...");
                 const res = await workService.getTokenByUserName('tannv5');
                 if (res.status === 'success' && res.data && res.data.result) {
-                    await storage.setToken(res.data.result);
+                    const result = res.data.result;
+                    if (typeof result === 'string') {
+                        await storage.setToken(result);
+                    } else {
+                        console.log("Token is object, stringifying:", result);
+                        await storage.setToken(JSON.stringify(result));
+                    }
                 }
             }
 
