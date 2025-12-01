@@ -42,6 +42,17 @@ const MainScreen = () => {
         <MaterialCommunityIcons name="clipboard-list" size={30} color="#fff" />
         <Text style={styles.buttonText}>Work Orders</Text>
       </Pressable>
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          pressed && styles.buttonPressed
+        ]}
+        onPress={() => navigation.navigate('SearchWorkScreen')}
+      >
+        <MaterialCommunityIcons name="magnify" size={30} color="#fff" />
+        <Text style={styles.buttonText}>Search Work</Text>
+      </Pressable>
     </View>
   );
 };
