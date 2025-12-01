@@ -181,6 +181,12 @@ const SearchWorkScreen = () => {
         }
     };
 
+    const handleClearToken = async () => {
+        await storage.clearToken();
+        setWorkList([]);
+        Alert.alert("Token cleared", "Please re-enter the screen or fetch again.");
+    };
+
     const fetchAndSync = async () => {
         setLoading(true);
         try {
@@ -203,11 +209,14 @@ const SearchWorkScreen = () => {
             if (response.status === 'success' && response.data && response.data.result && response.data.result.workList) {
                 const list = response.data.result.workList;
 
+                // Duplicate list 3 times for demo data
+                const duplicatedList = [...list, ...list, ...list];
+
                 // 1. Update UI immediately
-                setWorkList(list);
+                setWorkList(duplicatedList);
 
                 // 2. Sync to DB (Background)
-                saveToDb(list);
+                saveToDb(duplicatedList);
             }
         } catch (error) {
             console.error("Fetch error:", error);
@@ -259,6 +268,9 @@ const SearchWorkScreen = () => {
                 <Text style={styles.headerTitle}>Search Work</Text>
                 <Pressable onPress={fetchAndSync} style={styles.syncButton}>
                      <MaterialCommunityIcons name="sync" size={24} color="#007BFF" />
+                </Pressable>
+                <Pressable onPress={handleClearToken} style={[styles.syncButton, { marginLeft: 16 }]}>
+                    <MaterialCommunityIcons name="logout" size={24} color="#FF5252" />
                 </Pressable>
             </View>
 
