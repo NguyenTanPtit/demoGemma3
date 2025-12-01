@@ -36,7 +36,10 @@ public class IgnoreSSLFactory implements OkHttpClientFactory {
             final SSLContext sslContext = SSLContext.getInstance("SSL");
             sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
 
-            return new OkHttpClient.Builder()
+            // Use createClientBuilder to ensure React Native defaults (like CookieJar) are present
+            OkHttpClient.Builder builder = OkHttpClientProvider.createClientBuilder();
+
+            return builder
                 .sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager) trustAllCerts[0])
                 .hostnameVerifier((hostname, session) -> true)
                 .connectTimeout(30, TimeUnit.SECONDS)
