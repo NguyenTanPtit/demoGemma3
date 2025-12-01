@@ -35,7 +35,6 @@ const formatDuration = (seconds: number) => {
 const CameraScreen = () => {
     const navigation = useNavigation<any>();
 
-    // 1. Camera Setup
     const device = useCameraDevice('back');
     const { hasPermission, requestPermission } = useCameraPermission();
     const { hasPermission: hasMicPermission, requestPermission: requestMicPermission } = useMicrophonePermission();
@@ -44,21 +43,17 @@ const CameraScreen = () => {
     const viewShotRef = useRef<ViewShot>(null);
     const [isCapturing, setIsCapturing] = useState(false);
 
-    // Lifecycle management for Camera to avoid crash on navigation
     const isFocused = useIsFocused();
     const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
     const [isCameraActive, setIsCameraActive] = useState(false);
 
-    // Temp photo path for watermark capture workaround
     const [tempPhotoPath, setTempPhotoPath] = useState<string | null>(null);
 
-    // New State for Video & Zoom
     const [zoom, setZoom] = useState(device?.neutralZoom || 1);
     const [mode, setMode] = useState<CaptureMode>('photo');
     const [isRecording, setIsRecording] = useState(false);
     const [recordingDuration, setRecordingDuration] = useState(0);
 
-    // Reset capturing state when screen gains focus
     useFocusEffect(
         useCallback(() => {
             setIsCapturing(false);
@@ -67,14 +62,12 @@ const CameraScreen = () => {
             setRecordingDuration(0);
             setZoom(device?.neutralZoom || 1);
 
-            // Re-activate camera logic handled by isFocused effect
             return () => {
-                 // cleanup if needed
+
             };
         }, [device?.neutralZoom])
     );
 
-    // Timer Logic
     useEffect(() => {
         let interval: NodeJS.Timeout;
         if (isRecording) {
@@ -98,14 +91,12 @@ const CameraScreen = () => {
     }, []);
 
     useEffect(() => {
-        // Only activate camera when focused and app is active
-        // Adding a small delay to ensure transition is complete
         let timeout: NodeJS.Timeout;
 
         if (isFocused && appState === 'active') {
             timeout = setTimeout(() => {
                 setIsCameraActive(true);
-            }, 500); // 500ms delay to allow screen transition to finish
+            }, 500);
         } else {
             setIsCameraActive(false);
         }
@@ -115,12 +106,9 @@ const CameraScreen = () => {
         };
     }, [isFocused, appState]);
 
-
-    // 2. State for Overlay
     const [currentDate, setCurrentDate] = useState(new Date());
     const [location, setLocation] = useState<{ lat: number; long: number }>({ lat: 0.0, long: 0.0 });
 
-    // 3. Request Permissions (Camera, Mic & Location)
     useEffect(() => {
         const checkPermissions = async () => {
             // Camera Permission
@@ -157,7 +145,6 @@ const CameraScreen = () => {
 
     // 5. Live Location Logic
     useEffect(() => {
-        // Watch position for updates
         const watchId = Geolocation.watchPosition(
             (position) => {
                 setLocation({
@@ -212,12 +199,9 @@ const CameraScreen = () => {
         try {
             setIsCapturing(true);
 
-            // 1. Take the high-res photo first
             const photo = await cameraRef.current.takePhoto({
-                // flash: 'off' // Removed to allow auto exposure/flash
             });
 
-            // Set the temp photo path to display it
             const photoUri = Platform.OS === 'android' ? `file://${photo.path}` : photo.path;
             setTempPhotoPath(photoUri);
 
@@ -232,7 +216,6 @@ const CameraScreen = () => {
         if (!cameraRef.current) return;
 
         if (isRecording) {
-            // STOP Recording
             try {
                 await cameraRef.current.stopRecording();
                 setIsRecording(false);
@@ -240,7 +223,6 @@ const CameraScreen = () => {
                 console.error("Stop recording error", err);
             }
         } else {
-            // START Recording
             try {
                 if (!hasMicPermission) {
                     Alert.alert("Permission Error", "Microphone permission is required for video.");
@@ -266,7 +248,6 @@ const CameraScreen = () => {
         }
     };
 
-    // Handling "No Device" state
     if (device == null) return <ActivityIndicator size="large" color="red" />;
 
     return (
@@ -283,7 +264,7 @@ const CameraScreen = () => {
                         style={StyleSheet.absoluteFill}
                         resizeMode="cover"
                         fadeDuration={0}
-                        onLoad={processCapturedImage} // Trigger capture of the view once image is loaded
+                        onLoad={processCapturedImage}
                     />
                 ) : (
                     <Camera
@@ -292,8 +273,8 @@ const CameraScreen = () => {
                         device={device}
                         isActive={isCameraActive}
                         photo={true}
-                        video={true} // Enable video
-                        audio={hasMicPermission} // Enable audio only if we have permission
+                        video={true}
+                        audio={hasMicPermission}
                         zoom={zoom}
                     />
                 )}
@@ -301,7 +282,15 @@ const CameraScreen = () => {
                 {/* The Overlay: Bottom Left Corner - Always visible on top */}
                 <View style={styles.overlay}>
                     <Text style={styles.text}>
-                        Time: {currentDate.toLocaleTimeString()}
+                        Time: ${currentDate.toLocaleString('en-GB', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    }).replace(',', '')}
                     </Text>
                     <Text style={styles.text}>
                         Lat: {location.lat?.toFixed(5) || 'Loading...'}
@@ -391,9 +380,9 @@ const styles = StyleSheet.create({
     },
     overlay: {
         position: 'absolute',
-        bottom: 20, // Bottom corner
-        left: 20,   // Left corner
-        backgroundColor: 'rgba(0, 0, 0, 0.6)', // Semi-transparent background
+        bottom: 20,
+        left: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
         padding: 10,
         borderRadius: 8,
     },
@@ -401,7 +390,7 @@ const styles = StyleSheet.create({
         color: 'green',
         fontSize: 16,
         fontWeight: 'bold',
-        fontFamily: Platform.OS === 'android' ? 'monospace' : 'Courier', // Monospace looks better for data
+        fontFamily: Platform.OS === 'android' ? 'monospace' : 'Courier',
     },
     bottomBar: {
         position: 'absolute',
@@ -443,7 +432,7 @@ const styles = StyleSheet.create({
     recordingInner: {
         width: 40,
         height: 40,
-        borderRadius: 5, // Square when recording
+        borderRadius: 5,
     },
     loadingOverlay: {
         ...StyleSheet.absoluteFillObject,
