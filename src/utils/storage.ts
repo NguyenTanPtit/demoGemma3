@@ -1,12 +1,11 @@
+import { MMKV } from 'react-native-mmkv';
 
-import { createMMKV } from 'react-native-mmkv';
-
-const storageInstance = createMMKV();
+const storageInstance = new MMKV();
 const TOKEN_KEY = 'ACCESS_TOKEN';
 
 export const storage = {
-    // 1. Lưu token: Không cần async
-    setToken: (token: string) => {
+    // 1. Hàm lưu token (Gọi sau khi Login thành công)
+    setToken: async (token: string) => {
         try {
             storageInstance.set(TOKEN_KEY, token);
         } catch (e) {
@@ -14,18 +13,17 @@ export const storage = {
         }
     },
 
-    // 2. Lấy token: Trả về trực tiếp string | null (Không phải Promise)
-    getToken: (): string | null => {
+    getToken: async (): Promise<string | null> => {
         try {
             const token = storageInstance.getString(TOKEN_KEY);
-            return token || null; // Hoặc dùng token ?? null
+            return token || null;
         } catch (e) {
             return null;
         }
     },
 
-    // 3. Xóa token
-    clearToken: () => {
-        storageInstance.remove(TOKEN_KEY);
+    // 3. Xóa token (Gọi khi Logout)
+    clearToken: async () => {
+        storageInstance.delete(TOKEN_KEY);
     }
 };

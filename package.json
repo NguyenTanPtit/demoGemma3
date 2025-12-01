@@ -64,7 +64,7 @@
   "codegenConfig": {
     "name": "GenAISpec",
     "type": "modules",
-    "jsSrcsDir": "./src/service",
+    "jsSrcsDir": "./service",
     "android": {
       "javaPackageName": "com.demogemma3"
     }

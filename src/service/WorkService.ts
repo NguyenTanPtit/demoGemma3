@@ -1,8 +1,8 @@
 // src/api/services/WorkService.ts
-import { ApiClient } from './ApiClient.ts'; // Class Base Axios ta đã tạo ở câu trước
-import { getResultWithResponse } from '../utils/BaseApiHelper.ts'; // Hàm vừa tạo
-import {SearchWorkRequest, SearchWorkResponse} from '../model/types.ts';
-import { Resource } from '../utils/Resource.ts';
+import { ApiClient } from './ApiClient'; // Class Base Axios ta đã tạo ở câu trước
+import { getResultWithResponse } from '../utils/BaseApiHelper'; // Hàm vừa tạo
+import {SearchWorkRequest, SearchWorkResponse} from '../model/types';
+import { Resource } from '../utils/Resource';
 
 class WorkService extends ApiClient {
 
