@@ -50,6 +50,10 @@ export const getResultWithResponse = async <T>(
             return Resource.success(null);
         }
 
-        return Resource.error((e as VSmartAPIException).getUserMessage());
+        if (e instanceof VSmartAPIException) {
+            return Resource.error(e.getUserMessage());
+        }
+
+        return Resource.error(e);
     }
 };

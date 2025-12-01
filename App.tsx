@@ -9,6 +9,7 @@ import ChatScreen from './src/UI/ChatScreen';
 import CameraWatermarkScreen from './src/UI/CameraWatermarkScreen.tsx';
 import WOScreen from './src/UI/WOScreen';
 import PreviewScreen from './src/UI/PreviewScreen';
+import SearchWorkScreen from './src/UI/SearchWorkScreen';
 import { startNetworkLogging } from 'react-native-network-logger';
 
 startNetworkLogging();
@@ -56,6 +57,11 @@ const App = (): React.JSX.Element => {
                         name="PreviewScreen"
                         component={PreviewScreen}
                         options={{ title: 'Preview', headerShown: false }}
+                    />
+                    <Stack.Screen
+                        name="SearchWorkScreen"
+                        component={SearchWorkScreen}
+                        options={{ title: 'Search Work', headerShown: false }}
                     />
                 </Stack.Navigator>
             </NavigationContainer>
