@@ -209,8 +209,12 @@ const SearchWorkScreen = () => {
             if (response.status === 'success' && response.data && response.data.result && response.data.result.workList) {
                 const list = response.data.result.workList;
 
-                // Duplicate list 3 times for demo data
-                const duplicatedList = [...list, ...list, ...list];
+                // Duplicate list 3 times for demo data, ensuring unique IDs
+                const duplicatedList = [
+                    ...list,
+                    ...list.map(item => ({ ...item, workId: (item.workId || 0) + 1000000 })),
+                    ...list.map(item => ({ ...item, workId: (item.workId || 0) + 2000000 }))
+                ];
 
                 // 1. Update UI immediately
                 setWorkList(duplicatedList);
