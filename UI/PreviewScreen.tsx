@@ -3,15 +3,17 @@ import { View, Image, StyleSheet, Pressable, Text, Alert, Platform, ActivityIndi
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import Video from 'react-native-video';
 
 const PreviewScreen = () => {
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
-    const { imageUri } = route.params || {};
+    const { uri, imageUri, type = 'photo' } = route.params || {}; // Support both keys for backward compat
+    const fileUri = uri || imageUri;
     const [saving, setSaving] = useState(false);
 
     const hasAndroidPermission = async () => {
-        // For Android 13+ (SDK 33+), permissions are handled differently (READ_MEDIA_IMAGES)
+        // For Android 13+ (SDK 33+), permissions are handled differently (READ_MEDIA_IMAGES / VIDEO)
         // CameraRoll usually handles saving without explicit WRITE permission on modern Android if using Scoped Storage,
         // but for broader compatibility checking is good.
         // However, on Android 10+ (API 29+), writing to the public gallery (via MediaStore) typically doesn't need WRITE_EXTERNAL_STORAGE permission
@@ -34,23 +36,25 @@ const PreviewScreen = () => {
     };
 
     const handleSave = async () => {
-        if (!imageUri) return;
+        if (!fileUri) return;
 
         try {
             setSaving(true);
 
             if (Platform.OS === 'android' && !(await hasAndroidPermission())) {
-                 Alert.alert("Permission Denied", "Cannot save image without storage permission.");
+                 Alert.alert("Permission Denied", "Cannot save without storage permission.");
                  return;
             }
 
-            await CameraRoll.saveAsset(imageUri, { type: 'photo' });
-            Alert.alert("Success", "Image saved to gallery!", [
+            const assetType = type === 'video' ? 'video' : 'photo';
+            await CameraRoll.saveAsset(fileUri, { type: assetType });
+
+            Alert.alert("Success", `${type === 'video' ? 'Video' : 'Image'} saved to gallery!`, [
                 { text: "OK", onPress: () => navigation.goBack() }
             ]);
         } catch (error) {
             console.error("Save error:", error);
-            Alert.alert("Error", "Failed to save image.");
+            Alert.alert("Error", `Failed to save ${type}.`);
         } finally {
             setSaving(false);
         }
@@ -60,17 +64,27 @@ const PreviewScreen = () => {
         navigation.goBack();
     };
 
-    if (!imageUri) {
+    if (!fileUri) {
         return (
             <View style={styles.container}>
-                <Text>No image to preview.</Text>
+                <Text style={{color: 'white'}}>No media to preview.</Text>
             </View>
         );
     }
 
     return (
         <View style={styles.container}>
-            <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="contain" />
+             {type === 'video' ? (
+                 <Video
+                    source={{ uri: fileUri }}
+                    style={styles.previewImage}
+                    resizeMode="contain"
+                    controls={true}
+                    repeat={true}
+                 />
+             ) : (
+                <Image source={{ uri: fileUri }} style={styles.previewImage} resizeMode="contain" />
+             )}
 
             <View style={styles.controls}>
                 <Pressable style={[styles.button, styles.discardButton]} onPress={handleDiscard}>
