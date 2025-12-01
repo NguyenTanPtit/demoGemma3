@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     View,
     Text,
@@ -7,67 +7,64 @@ import {
     Pressable,
     ActivityIndicator,
     Alert,
-    Linking
+    Linking,
+    ListRenderItem
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { database } from '../database';
 import Work from '../database/model/Work';
-import { workService } from '../service/WorkService';
+import { workService } from '../api/WorkService';
 import { storage } from '../utils/storage';
 import { SearchWorkRequest, WorkEntity } from '../model/types';
 import { Q } from '@nozbe/watermelondb';
 
-// Helper to parse description
+// --- Utils (Tách ra khỏi Component để không bị khởi tạo lại) ---
+
 const parseDescription = (desc: string | null) => {
     if (!desc) return { info: '', phone: null, customerCode: null };
-
-    // Simple regex to extract common fields if they follow the "Key: Value" pattern
-    // Based on user example:
-    // "Hiện tượng: Port kém GPON,\nMã khách hàng: t008_gftth_diemnk36,\nĐiện thoại: 0921079779,..."
-
-    // Extract Phone (Simple regex for 10-11 digits)
     const phoneMatch = desc.match(/Điện thoại:\s*(\d+)/);
     const phone = phoneMatch ? phoneMatch[1] : null;
-
-    // Extract Customer Code
     const codeMatch = desc.match(/Mã khách hàng:\s*([^\n,]+)/);
     const customerCode = codeMatch ? codeMatch[1] : null;
-
     return { info: desc, phone, customerCode };
 };
 
-const WorkItem = ({ item }: { item: WorkEntity }) => {
-    const [expanded, setExpanded] = useState(false);
-    const { info, phone, customerCode } = parseDescription(item.workDescription);
 
-    // Highlight phone number logic
+const WorkItem = React.memo(({ item }: { item: WorkEntity }) => {
+    const [expanded, setExpanded] = useState(false);
+
+    // useMemo: Chỉ tính toán lại khi item.workDescription thay đổi
+    const { phone, customerCode } = useMemo(() =>
+            parseDescription(item.workDescription),
+        [item.workDescription]);
+
     const renderDescription = () => {
         if (!item.workDescription) return null;
 
-        const textToDisplay = expanded ? item.workDescription : (item.workDescription.substring(0, 100) + '...');
+        const textToDisplay = expanded
+            ? item.workDescription
+            : (item.workDescription.substring(0, 100) + (item.workDescription.length > 100 ? '...' : ''));
 
-        // If we found a phone number, let's split the text and highlight it
-        // This is a simplified approach. Ideally we iterate over matches.
         if (phone && expanded) {
-             const parts = textToDisplay.split(phone);
-             return (
-                 <Text style={styles.descriptionText}>
-                     {parts.map((part, index) => (
-                         <React.Fragment key={index}>
-                             {part}
-                             {index < parts.length - 1 && (
-                                 <Text
+            const parts = textToDisplay.split(phone);
+            return (
+                <Text style={styles.descriptionText}>
+                    {parts.map((part, index) => (
+                        <Text key={index}>
+                            {part}
+                            {index < parts.length - 1 && (
+                                <Text
                                     style={styles.phoneHighlight}
                                     onPress={() => Linking.openURL(`tel:${phone}`)}
-                                 >
-                                     {phone}
-                                 </Text>
-                             )}
-                         </React.Fragment>
-                     ))}
-                 </Text>
-             );
+                                >
+                                    {phone}
+                                </Text>
+                            )}
+                        </Text>
+                    ))}
+                </Text>
+            );
         }
 
         return <Text style={styles.descriptionText}>{textToDisplay}</Text>;
@@ -77,67 +74,68 @@ const WorkItem = ({ item }: { item: WorkEntity }) => {
         <View style={styles.card}>
             <View style={styles.cardHeader}>
                 <View style={styles.iconContainer}>
-                     <MaterialCommunityIcons name="briefcase-outline" size={24} color="#FFF" />
+                    <MaterialCommunityIcons name="briefcase-outline" size={24} color="#FFF" />
                 </View>
                 <View style={styles.headerContent}>
                     <Text style={styles.workCode}>{item.workCode}</Text>
-                    <Pressable onPress={() => {}}>
-                         <MaterialCommunityIcons name="dots-horizontal" size={24} color="#666" />
+                    <Pressable hitSlop={10}>
+                        <MaterialCommunityIcons name="dots-horizontal" size={24} color="#666" />
                     </Pressable>
                 </View>
             </View>
 
             <View style={styles.cardBody}>
-                {/* Title Section (Example: Hiện tượng...) */}
                 <Text style={styles.sectionTitle}>
                     {item.workDescription?.split('\n')[0] || 'Thông tin công việc'}
                 </Text>
 
-                 {/* Customer Code if extracted */}
                 {customerCode && (
-                     <Text style={styles.customerCode}>
+                    <Text style={styles.customerCode}>
                         Mã khách hàng: <Text style={{fontWeight: 'normal'}}>{customerCode}</Text>
-                     </Text>
+                    </Text>
                 )}
 
-                {/* Full Description / Content */}
                 <View style={styles.descriptionContainer}>
-                     {renderDescription()}
+                    {renderDescription()}
                 </View>
 
-                {/* See More Button */}
-                <Pressable onPress={() => setExpanded(!expanded)} style={styles.seeMoreBtn}>
-                    <Text style={styles.seeMoreText}>
-                        {expanded ? 'Thu gọn' : 'Xem thêm'}
-                    </Text>
-                     <MaterialCommunityIcons
-                        name={expanded ? "chevron-up" : "chevron-down"}
-                        size={16}
-                        color="red"
-                    />
-                </Pressable>
+                {/* Chỉ hiện nút xem thêm nếu text dài */}
+                {(item.workDescription?.length || 0) > 100 && (
+                    <Pressable onPress={() => setExpanded(!expanded)} style={styles.seeMoreBtn}>
+                        <Text style={styles.seeMoreText}>
+                            {expanded ? 'Thu gọn' : 'Xem thêm'}
+                        </Text>
+                        <MaterialCommunityIcons
+                            name={expanded ? "chevron-up" : "chevron-down"}
+                            size={16}
+                            color="red"
+                        />
+                    </Pressable>
+                )}
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.cardFooter}>
-                 <View style={styles.footerRow}>
+                <View style={styles.footerRow}>
                     <MaterialCommunityIcons name="clock-outline" size={16} color="#666" />
                     <Text style={styles.footerText}>{item.workCreatedDate || 'N/A'}</Text>
-                 </View>
-                 <View style={styles.footerRow}>
+                </View>
+                <View style={styles.footerRow}>
                     <MaterialCommunityIcons name="eye-outline" size={16} color="#666" />
                     <Text style={styles.footerText}>{item.workStatusName}</Text>
-                 </View>
+                </View>
             </View>
 
-             <View style={styles.staffRow}>
+            <View style={styles.staffRow}>
                 <MaterialCommunityIcons name="account-circle" size={20} color="#999" />
                 <Text style={styles.staffName}>{item.workStaffName}</Text>
             </View>
         </View>
     );
-};
+});
+
+// --- Main Screen ---
 
 const SearchWorkScreen = () => {
     const navigation = useNavigation();
@@ -145,50 +143,50 @@ const SearchWorkScreen = () => {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        initialize();
+        initializeData();
     }, []);
 
-    const initialize = async () => {
+    const initializeData = async () => {
         setLoading(true);
         try {
-            // 1. Check Token
-            let token = await storage.getToken();
-            if (!token) {
-                console.log("Token missing, fetching...");
-                const res = await workService.getTokenByUserName('tannv5');
-                if (res.status === 'success' && res.data) {
-                    await storage.setToken(res.data);
-                }
-            }
-
-            // 2. Check Local DB
+            // 1. Load Local DB trước (UI hiển thị ngay lập tức)
             const worksCollection = database.collections.get<Work>('works');
             const localWorks = await worksCollection.query().fetch();
 
             if (localWorks.length > 0) {
-                console.log(`Loaded ${localWorks.length} works from Local DB`);
-                const parsedWorks = localWorks.map(w => JSON.parse(w.jsonContent) as WorkEntity);
+                // Parse JSON cẩn thận để tránh crash
+                const parsedWorks = localWorks.map(w => {
+                    try { return JSON.parse(w.jsonContent) as WorkEntity } catch { return null }
+                }).filter(Boolean) as WorkEntity[];
+
                 setWorkList(parsedWorks);
-            } else {
-                console.log("Local DB empty, syncing...");
-                await fetchAndSync();
             }
+
+            // 2. Check Token & Sync từ Server
+            let token = await storage.getToken();
+            if (!token) {
+                const res = await workService.getTokenByUserName('act_d00184215'); // Dùng user thật
+                if (res.status === 'success' && res.data) {
+                    await storage.setToken(res.data);
+                }
+            }
+            await fetchAndSync();
+
         } catch (error) {
-            console.error("Initialization error:", error);
-            Alert.alert("Error", "Failed to load data");
+            console.error("Init Error:", error);
+            Alert.alert("Lỗi", "Không thể tải dữ liệu");
         } finally {
             setLoading(false);
         }
     };
 
     const fetchAndSync = async () => {
-        setLoading(true);
         try {
             const request: SearchWorkRequest = {
                 listDepartmentId: [],
                 workTypesMappingWO: [],
                 pageIndex: 1,
-                pageSize: 200,
+                pageSize: 200, // Cẩn thận với số lượng lớn
                 searchDateFrom: "2025-05-03",
                 searchDateTo: "2025-12-02",
                 searchDateType: "CREATED_DATE",
@@ -200,39 +198,27 @@ const SearchWorkScreen = () => {
 
             const response = await workService.searchWork(101036, request);
 
-            if (response.status === 'success' && response.data && response.data.workList) {
+            if (response.status === 'success' && response.data?.workList) {
                 const list = response.data.workList;
-
-                // 1. Update UI immediately
-                setWorkList(list);
-
-                // 2. Sync to DB (Background)
-                saveToDb(list);
+                setWorkList(list); // Update UI
+                await saveToDb(list); // Sync Background
             }
         } catch (error) {
-            console.error("Fetch error:", error);
-            Alert.alert("Error", "Failed to fetch data");
-        } finally {
-            setLoading(false);
+            console.error("Fetch Error:", error);
         }
     };
 
     const saveToDb = async (list: WorkEntity[]) => {
         try {
-             await database.write(async () => {
+            await database.write(async () => {
                 const worksCollection = database.collections.get<Work>('works');
 
-                // Clear old data? Or Upsert? Strategy: Clear all and insert new for simplicity of "Sync list"
-                // Ideally, we compare IDs, but simpler approach requested: "sync save list"
-
-                // Note: WatermelonDB direct delete of all records can be heavy.
-                // Let's use unsafeResetDatabase if strictly replacing, but better to just delete works.
                 const allWorks = await worksCollection.query().fetch();
                 const worksToDelete = allWorks.map(work => work.prepareDestroyPermanently());
 
                 const worksToCreate = list.map(item =>
                     worksCollection.prepareCreate(work => {
-                        work.workId = item.workId || 0;
+                        work.workId = item.workId??0; // workId trong Model là number hay string?
                         work.workCode = item.workCode || '';
                         work.workDescription = item.workDescription || '';
                         work.workStatusName = item.workStatusName || '';
@@ -243,22 +229,30 @@ const SearchWorkScreen = () => {
                 );
 
                 await database.batch(...worksToDelete, ...worksToCreate);
-             });
-             console.log("Synced to Local DB successfully");
+            });
         } catch (e) {
-            console.error("DB Sync error", e);
+            console.error("DB Sync Error", e);
         }
     };
+
+    // Tối ưu FlatList: Định nghĩa renderItem bên ngoài hoặc dùng useCallback
+    const renderItem: ListRenderItem<WorkEntity> = useCallback(({ item }) => (
+        <WorkItem item={item} />
+    ), []);
+
+    const keyExtractor = useCallback((item: WorkEntity, index: number) =>
+            item.workId?.toString() || index.toString(),
+        []);
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+                <Pressable hitSlop={15} onPress={() => navigation.goBack()} style={styles.backButton}>
                     <MaterialCommunityIcons name="arrow-left" size={24} color="#000" />
                 </Pressable>
-                <Text style={styles.headerTitle}>Search Work</Text>
-                <Pressable onPress={fetchAndSync} style={styles.syncButton}>
-                     <MaterialCommunityIcons name="sync" size={24} color="#007BFF" />
+                <Text style={styles.headerTitle}>Tra cứu công việc</Text>
+                <Pressable hitSlop={15} onPress={() => { setLoading(true); fetchAndSync().finally(() => setLoading(false)); }} style={styles.syncButton}>
+                    <MaterialCommunityIcons name="sync" size={24} color="#007BFF" />
                 </Pressable>
             </View>
 
@@ -266,14 +260,18 @@ const SearchWorkScreen = () => {
 
             <FlatList
                 data={workList}
-                keyExtractor={(item, index) => item.workId?.toString() || index.toString()}
-                renderItem={({ item }) => <WorkItem item={item} />}
+                keyExtractor={keyExtractor}
+                renderItem={renderItem}
                 contentContainerStyle={styles.listContent}
+                initialNumToRender={10} // Tối ưu render đầu
+                maxToRenderPerBatch={10} // Tối ưu khi scroll
+                windowSize={5} // Giảm bộ nhớ
             />
         </View>
     );
 };
 
+// ... (Giữ nguyên styles như cũ)
 const styles = StyleSheet.create({
     container: {
         flex: 1,
