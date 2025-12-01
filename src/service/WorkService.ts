@@ -21,7 +21,7 @@ class WorkService extends ApiClient {
         return getResultWithResponse(async () => {
             return this.instance.get<string>(
                 'generateTokenController/getTokenByUsername',
-                { params: { userName } }
+                { params: { username: userName } }
             );
         });
     }
