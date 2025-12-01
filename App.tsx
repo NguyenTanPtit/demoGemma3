@@ -1,21 +1,19 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
 import React from 'react';
-import { StatusBar, useColorScheme } from 'react-native';
+import {AppRegistry, StatusBar, useColorScheme} from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import MainScreen from './UI/MainScreen';
-import ChatScreen from './UI/ChatScreen';
-import CameraWatermarkScreen from './UI/CameraWatermarkScreen.tsx';
-import WOScreen from './UI/WOScreen';
-import PreviewScreen from './UI/PreviewScreen';
+import MainScreen from './src/UI/MainScreen';
+import ChatScreen from './src/UI/ChatScreen';
+import CameraWatermarkScreen from './src/UI/CameraWatermarkScreen.tsx';
+import WOScreen from './src/UI/WOScreen';
+import PreviewScreen from './src/UI/PreviewScreen';
+import { startNetworkLogging } from 'react-native-network-logger';
+
+startNetworkLogging();
+AppRegistry.registerComponent('App', () => App);
+
 
 const Stack = createNativeStackNavigator();
 

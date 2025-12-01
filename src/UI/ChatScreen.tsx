@@ -33,7 +33,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 // Import file định nghĩa Native Module (cùng thư mục service/)
-import NativeGenAI from '../service/NativeGenAI';
+import NativeGenAI from '../service/NativeGenAI.ts';
 
 // --- Constants & Types ---
 const audioRecorderPlayer =  AudioRecorderPlayer;
