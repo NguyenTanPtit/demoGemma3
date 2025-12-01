@@ -156,8 +156,8 @@ const SearchWorkScreen = () => {
             if (!token) {
                 console.log("Token missing, fetching...");
                 const res = await workService.getTokenByUserName('tannv5');
-                if (res.status === 'success' && res.data) {
-                    await storage.setToken(res.data);
+                if (res.status === 'success' && res.data && res.data.result) {
+                    await storage.setToken(res.data.result);
                 }
             }
 
@@ -200,8 +200,8 @@ const SearchWorkScreen = () => {
 
             const response = await workService.searchWork(101036, request);
 
-            if (response.status === 'success' && response.data && response.data.workList) {
-                const list = response.data.workList;
+            if (response.status === 'success' && response.data && response.data.result && response.data.result.workList) {
+                const list = response.data.result.workList;
 
                 // 1. Update UI immediately
                 setWorkList(list);
