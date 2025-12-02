@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -15,8 +15,7 @@ import { database } from '../database';
 import Work from '../database/model/Work';
 import { workService } from '../service/WorkService';
 import { storage } from '../utils/storage';
-import { SearchWorkRequest, WorkEntity } from '../model/types';
-import { Q } from '@nozbe/watermelondb';
+import { WorkEntity } from '../model/types';
 
 // Helper to parse description
 const parseDescription = (desc: string | null) => {
@@ -39,7 +38,7 @@ const parseDescription = (desc: string | null) => {
 
 const WorkItem = ({ item }: { item: WorkEntity }) => {
     const [expanded, setExpanded] = useState(false);
-    const { info, phone, customerCode } = parseDescription(item.workDescription);
+    const {phone, customerCode } = parseDescription(item.workDescription);
 
     // Highlight phone number logic
     const renderDescription = () => {
@@ -90,7 +89,7 @@ const WorkItem = ({ item }: { item: WorkEntity }) => {
             <View style={styles.cardBody}>
                 {/* Title Section (Example: Hiện tượng...) */}
                 <Text style={styles.sectionTitle}>
-                    {item.workDescription?.split('\n')[0] || 'Thông tin công việc'}
+                    {item.workName?.split('\n')[0] || 'Thông tin công việc'}
                 </Text>
 
                  {/* Customer Code if extracted */}
@@ -127,7 +126,7 @@ const WorkItem = ({ item }: { item: WorkEntity }) => {
                  </View>
                  <View style={styles.footerRow}>
                     <MaterialCommunityIcons name="eye-outline" size={16} color="#666" />
-                    <Text style={styles.footerText}>{item.workStatusName}</Text>
+                    <Text style={styles.footerText}>{item.workProgressName}</Text>
                  </View>
             </View>
 
@@ -196,37 +195,17 @@ const SearchWorkScreen = () => {
     const fetchAndSync = async () => {
         setLoading(true);
         try {
-            const request: SearchWorkRequest = {
-                listDepartmentId: [],
-                workTypesMappingWO: [],
-                pageIndex: 1,
-                pageSize: 200,
-                searchDateFrom: "2025-05-03",
-                searchDateTo: "2025-12-02",
-                searchDateType: "CREATED_DATE",
-                userHandles: ["act_d00184215"],
-                woCdGroupIds: [],
-                workCusInfo: "",
-                workStatuses: ["1", "2", "3", "4", "5", "6", "8", "9", "10", "11"]
-            };
-
-            const response = await workService.searchWork(101036, request);
+            const response = await workService.searchWork(101036);
 
             if (response.status === 'success' && response.data && response.data.result && response.data.result.workList) {
                 const list = response.data.result.workList;
 
-                // Duplicate list 3 times for demo data, ensuring unique IDs
-                const duplicatedList = [
-                    ...list,
-                    ...list.map(item => ({ ...item, workId: (item.workId || 0) + 1000000 })),
-                    ...list.map(item => ({ ...item, workId: (item.workId || 0) + 2000000 }))
-                ];
 
                 // 1. Update UI immediately
-                setWorkList(duplicatedList);
+                setWorkList(list);
 
                 // 2. Sync to DB (Background)
-                saveToDb(duplicatedList);
+                saveToDb(list);
             }
         } catch (error) {
             console.error("Fetch error:", error);
@@ -240,12 +219,6 @@ const SearchWorkScreen = () => {
         try {
              await database.write(async () => {
                 const worksCollection = database.collections.get<Work>('works');
-
-                // Clear old data? Or Upsert? Strategy: Clear all and insert new for simplicity of "Sync list"
-                // Ideally, we compare IDs, but simpler approach requested: "sync save list"
-
-                // Note: WatermelonDB direct delete of all records can be heavy.
-                // Let's use unsafeResetDatabase if strictly replacing, but better to just delete works.
                 const allWorks = await worksCollection.query().fetch();
                 const worksToDelete = allWorks.map(work => work.prepareDestroyPermanently());
 
