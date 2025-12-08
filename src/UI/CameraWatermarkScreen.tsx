@@ -93,7 +93,7 @@ const CameraScreen = () => {
     useEffect(() => {
         let timeout: NodeJS.Timeout;
 
-        if (isFocused && appState === 'active') {
+        if (isFocused && appState === 'active'&& hasPermission) {
             timeout = setTimeout(() => {
                 setIsCameraActive(true);
             }, 500);
@@ -104,7 +104,7 @@ const CameraScreen = () => {
         return () => {
             if (timeout) clearTimeout(timeout);
         };
-    }, [isFocused, appState]);
+    }, [isFocused, appState, hasPermission]);
 
     const [currentDate, setCurrentDate] = useState(new Date());
     const [location, setLocation] = useState<{ lat: number; long: number }>({ lat: 0.0, long: 0.0 });
@@ -282,7 +282,7 @@ const CameraScreen = () => {
                 {/* The Overlay: Bottom Left Corner - Always visible on top */}
                 <View style={styles.overlay}>
                     <Text style={styles.text}>
-                        Time: ${currentDate.toLocaleString('en-GB', {
+                        Time:{currentDate.toLocaleString('en-GB', {
                         year: 'numeric',
                         month: '2-digit',
                         day: '2-digit',
@@ -380,15 +380,15 @@ const styles = StyleSheet.create({
     },
     overlay: {
         position: 'absolute',
-        bottom: 20,
-        left: 20,
+        top: 20,
+        left: 5,
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
         padding: 10,
-        borderRadius: 8,
+        borderRadius: 15,
     },
     text: {
         color: 'green',
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: 'bold',
         fontFamily: Platform.OS === 'android' ? 'monospace' : 'Courier',
     },

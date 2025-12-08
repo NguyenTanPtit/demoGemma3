@@ -411,18 +411,6 @@ const ChatScreen = () => {
                         </Animated.View>
                     )}
 
-                    <View style={styles.inputToolbar}>
-                        <TouchableOpacity style={styles.toolbarButton} onPress={() => handleSelectImage('library')}>
-                            <Feather name="image" size={24} color="#e91e63" />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.toolbarButton} onPress={() => handleSelectImage('camera')}>
-                            <Feather name="camera" size={24} color="#e91e63" />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.toolbarButton} onPressIn={handleStartRecording} onPressOut={handleStopRecording}>
-                            <Feather name={isRecording ? 'mic-off' : 'mic'} size={24} color={isRecording ? '#d32f2f' : '#e91e63'} />
-                        </TouchableOpacity>
-                    </View>
-
                     <View style={styles.rowInput}>
                         <TextInput
                             style={styles.input}

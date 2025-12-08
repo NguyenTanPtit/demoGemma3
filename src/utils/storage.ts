@@ -1,27 +1,28 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createMMKV } from "react-native-mmkv";
 
-const TOKEN_KEY = 'ACCESS_TOKEN';
+const storageInstance = createMMKV();
+
+const TOKEN_KEY = "ACCESS_TOKEN";
 
 export const storage = {
-    // 1. Hàm lưu token (Gọi sau khi Login thành công)
-    setToken: async (token: string) => {
+    setToken: (token: string) => {
         try {
-            await AsyncStorage.setItem(TOKEN_KEY, token);
+            storageInstance.set(TOKEN_KEY, token);
         } catch (e) {
             console.error("Lỗi lưu token", e);
         }
     },
 
-    getToken: async (): Promise<string | null> => {
+    getToken: (): string | null => {
         try {
-            return await AsyncStorage.getItem(TOKEN_KEY);
+            const token = storageInstance.getString(TOKEN_KEY);
+            return token ?? null;
         } catch (e) {
             return null;
         }
     },
 
-    // 3. Xóa token (Gọi khi Logout)
-    clearToken: async () => {
-        await AsyncStorage.removeItem(TOKEN_KEY);
+    clearToken: () => {
+        storageInstance.remove(TOKEN_KEY);
     }
 };
