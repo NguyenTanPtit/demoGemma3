@@ -93,7 +93,7 @@ const CameraScreen = () => {
     useEffect(() => {
         let timeout: NodeJS.Timeout;
 
-        if (isFocused && appState === 'active') {
+        if (isFocused && appState === 'active'&& hasPermission) {
             timeout = setTimeout(() => {
                 setIsCameraActive(true);
             }, 500);
@@ -104,7 +104,7 @@ const CameraScreen = () => {
         return () => {
             if (timeout) clearTimeout(timeout);
         };
-    }, [isFocused, appState]);
+    }, [isFocused, appState, hasPermission]);
 
     const [currentDate, setCurrentDate] = useState(new Date());
     const [location, setLocation] = useState<{ lat: number; long: number }>({ lat: 0.0, long: 0.0 });
