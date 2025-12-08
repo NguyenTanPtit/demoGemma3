@@ -7,6 +7,7 @@ import 'dart:io';
 // Include the generated part file
 part 'database.g.dart';
 
+@DataClassName('WorkItem')
 class Works extends Table {
   IntColumn get workId => integer().nullable()();
   TextColumn get workCode => text()();
@@ -27,11 +28,11 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 1;
 
-  Future<void> insertOrUpdateWork(Work work) {
+  Future<void> insertOrUpdateWork(WorkItem work) {
     return into(works).insertOnConflictUpdate(work);
   }
 
-  Future<List<Work>> getAllWorks() {
+  Future<List<WorkItem>> getAllWorks() {
     return select(works).get();
   }
 

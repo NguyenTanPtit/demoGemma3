@@ -24,15 +24,15 @@ class WorkRepository {
         final List<dynamic> list = response.data['result']['workList'];
         final works = list.map((e) => WorkEntity.fromJson(e)).toList();
 
-        for (var work in works) {
-          await _db.insertOrUpdateWork(Work(
-            workId: work.workId,
-            workCode: work.workCode,
-            workDescription: work.workDescription,
-            workStatusName: work.workStatusName,
-            workStaffName: work.workStaffName,
-            workCreatedDate: work.workCreatedDate,
-            jsonContent: jsonEncode(work.toJson()),
+        for (var workEntity in works) {
+          await _db.insertOrUpdateWork(WorkItem(
+            workId: workEntity.workId,
+            workCode: workEntity.workCode,
+            workDescription: workEntity.workDescription,
+            workStatusName: workEntity.workStatusName,
+            workStaffName: workEntity.workStaffName,
+            workCreatedDate: workEntity.workCreatedDate,
+            jsonContent: jsonEncode(workEntity.toJson()),
           ));
         }
 

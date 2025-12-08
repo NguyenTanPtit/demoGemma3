@@ -18,6 +18,7 @@ This project is a Flutter reimplementation of the React Native app.
 
 2.  **Code Generation (Important)**
     Since this project uses `drift` for the database, you must run the build runner to generate the database code (`database.g.dart`).
+    **The app will not compile until this step is run.**
     ```bash
     flutter pub run build_runner build --delete-conflicting-outputs
     ```
